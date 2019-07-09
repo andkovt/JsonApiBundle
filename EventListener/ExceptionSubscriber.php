@@ -110,7 +110,7 @@ class ExceptionSubscriber implements EventSubscriberInterface
             MangoJsonApiBundle::FORMAT
         );
 
-        $event->setResponse(new JsonApiResponse($content, $this->decideResponseStatusCode($exception)));
+        $event->setResponse(new JsonApiResponse($content, $this->chooseResponseStatusCode($exception)));
         $event->stopPropagation();
     }
 
@@ -132,13 +132,13 @@ class ExceptionSubscriber implements EventSubscriberInterface
     }
 
     /**
-     * Decides which response status code should be sent based on the exception
+     * Chooses which response status code should be sent based on the exception
      *
      * @param Exception $exception
      *
      * @return int
      */
-    private function decideResponseStatusCode(Exception $exception): int
+    private function chooseResponseStatusCode(Exception $exception): int
     {
         if ($exception instanceof ConstraintViolationException) {
             return JsonApiResponse::HTTP_BAD_REQUEST;
