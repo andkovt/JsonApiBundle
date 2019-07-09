@@ -8,6 +8,8 @@
 
 namespace Mango\Bundle\JsonApiBundle\EventListener;
 
+use Doctrine\DBAL\Exception\ConstraintViolationException;
+use Exception;
 use JMS\Serializer\SerializerInterface;
 use Mango\Bundle\JsonApiBundle\MangoJsonApiBundle;
 use Psr\Log\LoggerInterface;
@@ -92,15 +94,15 @@ class ExceptionSubscriber implements EventSubscriberInterface
 
         $exception = $event->getException();
 
-        $this->logger->warning(
-            'Exception has been thrown.',
-            [
-                'exception_code'    => $exception->getCode(),
-                'exception_message' => $exception->getMessage(),
-                'exception_file'    => $exception->getFile(),
-                'exception_trace'   => $exception->getTraceAsString(),
-                'exception_line'    => $exception->getLine()
-            ]
+        $this->logException(
+            $exception,
+            sprintf(
+                'Uncaught PHP Exception %s: "%s" at %s line %s',
+                get_class($exception),
+                $exception->getMessage(),
+                $exception->getFile(),
+                $exception->getLine()
+            )
         );
 
         $content = $this->serializer->serialize(
@@ -108,7 +110,40 @@ class ExceptionSubscriber implements EventSubscriberInterface
             MangoJsonApiBundle::FORMAT
         );
 
-        $event->setResponse(new JsonApiResponse($content, JsonApiResponse::HTTP_BAD_REQUEST));
+        $event->setResponse(new JsonApiResponse($content, $this->decideResponseStatusCode($exception)));
         $event->stopPropagation();
+    }
+
+    /**
+     * Logs exception
+     *
+     * @param Exception $exception
+     * @param string    $message
+     *
+     * @return void
+     */
+    private function logException(Exception $exception, string $message)
+    {
+        if ($this->logger === null) {
+            return;
+        }
+
+        $this->logger->error($message, ['exception' => $exception]);
+    }
+
+    /**
+     * Decides which response status code should be sent based on the exception
+     *
+     * @param Exception $exception
+     *
+     * @return int
+     */
+    private function decideResponseStatusCode(Exception $exception): int
+    {
+        if ($exception instanceof ConstraintViolationException) {
+            return JsonApiResponse::HTTP_BAD_REQUEST;
+        }
+
+        return JsonApiResponse::HTTP_INTERNAL_SERVER_ERROR;
     }
 }
