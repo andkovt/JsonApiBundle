@@ -128,7 +128,7 @@ class ExceptionSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $this->logger->error($message, ['exception' => $exception]);
+        $this->logger->critical($message, ['exception' => $exception]);
     }
 
     /**
