@@ -94,16 +94,7 @@ class ExceptionSubscriber implements EventSubscriberInterface
 
         $exception = $event->getException();
 
-        $this->logException(
-            $exception,
-            sprintf(
-                'Uncaught PHP Exception %s: "%s" at %s line %s',
-                get_class($exception),
-                $exception->getMessage(),
-                $exception->getFile(),
-                $exception->getLine()
-            )
-        );
+        $this->logException($exception, 'Uncaught PHP Exception');
 
         $content = $this->serializer->serialize(
             $exception,
@@ -128,7 +119,18 @@ class ExceptionSubscriber implements EventSubscriberInterface
             return;
         }
 
-        $this->logger->critical($message, ['exception' => $exception]);
+        $this->logger->critical(
+            $message,
+            [
+                'exception'         => $exception,
+                'exception_class'   => get_class($exception),
+                'exception_code'    => $exception->getCode(),
+                'exception_message' => $exception->getMessage(),
+                'exception_file'    => $exception->getFile(),
+                'exception_line'    => $exception->getLine(),
+                'exception_trace'   => $exception->getTraceAsString(),
+            ]
+        );
     }
 
     /**
